@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup">
+    <header class="header">
+      <h1>@iAskShahram - Instagram Posts JSON</h1>
+    </header>
+
+    <main class="main">
+      <div id="status" class="status">
+        <span class="status-dot"></span>
+        <span class="status-text">Detecting profile...</span>
+      </div>
+
+      <div id="success" class="success" style="display:none">
+        <div class="info-row">
+          <span class="username" id="username"></span>
+          <span class="count" id="count"></span>
+        </div>
+        <p class="hint">Scroll to load more, then click Rescrape.</p>
+      </div>
+
+      <div id="actions" class="actions" style="display:none">
+        <button id="copyBtn" class="btn btn-primary">
+          <span class="btn-icon">📋</span>
+          Copy
+        </button>
+        <button id="downloadBtn" class="btn btn-secondary">
+          <span class="btn-icon">⬇</span>
+          Download
+        </button>
+        <button id="redoBtn" class="btn btn-ghost">
+          <span class="btn-icon">↻</span>
+          Rescrape
+        </button>
+      </div>
+
+      <pre id="preview" class="preview" style="display:none"></pre>
+    </main>
+
+    <div id="toast" class="toast" style="display:none">Copied!</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

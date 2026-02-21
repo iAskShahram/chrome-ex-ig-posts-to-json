@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "@iAskShahram - Instagram Posts JSON",
+  "description": "Extract all post data from any Instagram profile as JSON",
+  "version": "1.0.0",
+  "permissions": ["activeTab"],
+  "host_permissions": ["https://*.instagram.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.instagram.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
