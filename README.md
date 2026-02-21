@@ -1,6 +1,6 @@
-# Instagram Posts JSON
+# IG Posts to JSON
 
-Chrome extension that extracts post data from Instagram profiles as JSON.
+Chrome extension that extracts post data from IG profiles as JSON.
 
 ## Install
 
@@ -11,7 +11,7 @@ Chrome extension that extracts post data from Instagram profiles as JSON.
 
 ## Use
 
-1. Go to an Instagram profile (logged in)
+1. Go to an IG profile (logged in)
 2. Scroll to load posts
 3. Click the extension icon
 4. Copy or download the JSON

@@ -1,13 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "@iAskShahram - Instagram Posts JSON",
-  "description": "Extract all post data from any Instagram profile as JSON",
+  "name": "IG Posts to JSON",
+  "description": "Extract post data from social media profiles as JSON",
   "version": "1.0.0",
   "permissions": ["activeTab"],
   "host_permissions": ["https://*.instagram.com/*"],
-  "background": {
-    "service_worker": "background.js"
-  },
   "content_scripts": [
     {
       "matches": ["https://*.instagram.com/*"],

@@ -32,11 +32,11 @@ async function init() {
   }
 
   currentUsername = username;
-  statusTextEl.textContent = `Scraping posts for @${username}...`;
+  statusTextEl.textContent = `Reading posts for @${username}...`;
 
   chrome.tabs.sendMessage(tab.id, { type: 'SCRAPE_POSTS' }, (response) => {
     if (chrome.runtime.lastError || !response) {
-      statusTextEl.textContent = 'Failed to scrape. Refresh the page and try again.';
+      statusTextEl.textContent = 'Failed to read posts. Refresh the page and try again.';
       return;
     }
 
