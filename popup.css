@@ -201,6 +201,88 @@ body {
   border-radius: 4px;
 }
 
+.storage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.storage-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a1a1aa;
+  letter-spacing: -0.01em;
+}
+
+.storage-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.storage-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.storage-items::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.storage-items::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 3px;
+}
+
+.storage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #18181b;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.storage-item:hover {
+  background: #1f1f23;
+}
+
+.storage-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.storage-item-username {
+  font-weight: 600;
+  font-size: 13px;
+  color: #fafafa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storage-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.btn-sm .btn-icon {
+  font-size: 12px;
+}
+
 .toast {
   position: fixed;
   bottom: 16px;

@@ -3,7 +3,7 @@
   "name": "IG Posts to JSON",
   "description": "Extract post data from social media profiles as JSON",
   "version": "1.0.0",
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "storage"],
   "host_permissions": ["https://*.instagram.com/*"],
   "content_scripts": [
     {

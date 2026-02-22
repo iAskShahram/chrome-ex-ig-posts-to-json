@@ -38,9 +38,19 @@
           <span class="btn-icon">↻</span>
           Refresh
         </button>
+        <button id="backBtn" class="btn btn-ghost" style="display:none">
+          <span class="btn-icon">&larr;</span>
+          Back
+        </button>
       </div>
 
       <pre id="preview" class="preview" style="display:none"></pre>
+
+      <div id="storage-list" class="storage-list" style="display:none">
+        <p class="storage-title">Stored profiles</p>
+        <div id="storage-items" class="storage-items"></div>
+        <p id="storage-empty" class="hint" style="display:none">No stored data yet. Visit a profile to get started.</p>
+      </div>
     </main>
 
     <div id="toast" class="toast" style="display:none">Copied!</div>
