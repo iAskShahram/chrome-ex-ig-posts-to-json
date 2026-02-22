@@ -15,7 +15,7 @@ function dedupeURLs(urls) {
   const seen = new Map();
   for (const url of urls) {
     const key = url.split("?")[0];
-    if (!seen.has(key)) seen.set(key, url);
+    seen.set(key, url);
   }
   return [...seen.values()];
 }
