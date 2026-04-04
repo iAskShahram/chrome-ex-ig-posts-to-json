@@ -9,7 +9,67 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ post });
     return true;
   }
+  if (msg.type === "FETCH_POST_INFO") {
+    fetchPostInfo(msg.shortcode).then((info) => {
+      sendResponse(info);
+    });
+    return true;
+  }
 });
+
+function shortcodeToId(shortcode) {
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  let id = BigInt(0);
+  for (const char of shortcode) {
+    id = id * BigInt(64) + BigInt(alphabet.indexOf(char));
+  }
+  return id.toString();
+}
+
+async function fetchPostInfo(shortcode) {
+  try {
+    const postId = shortcodeToId(shortcode);
+    const resp = await fetch(`/api/v1/media/${postId}/info/`, {
+      headers: {
+        "X-IG-App-ID": "936619743392459",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      credentials: "include",
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const items = data.items || [];
+    if (items.length === 0) return null;
+    const item = items[0];
+    const username = item.user?.username || "";
+    const caption = item.caption?.text || "";
+    const timestamp = item.taken_at
+      ? new Date(item.taken_at * 1000).toISOString()
+      : "";
+    const isVideo = item.media_type === 2;
+    const videoVersions = item.video_versions || [];
+    const bestVideo = videoVersions.length > 0
+      ? videoVersions.reduce((a, b) => (a.width > b.width ? a : b))
+      : null;
+    const imageVersions = item.image_versions2?.candidates || [];
+    const bestImage = imageVersions.length > 0
+      ? imageVersions.reduce((a, b) => (a.width > b.width ? a : b))
+      : null;
+    return {
+      username,
+      shortcode,
+      caption,
+      timestamp,
+      type: isVideo ? "reel" : "post",
+      postUrl: `https://www.instagram.com/reel/${shortcode}/`,
+      imageURLs: bestImage ? [bestImage.url] : [],
+      videoURLs: bestVideo ? [bestVideo.url] : [],
+    };
+  } catch {
+    return null;
+  }
+}
 
 function dedupeURLs(urls) {
   const seen = new Map();
@@ -71,19 +131,22 @@ function scrapeSinglePost() {
   if (!pathMatch) return null;
 
   const [, urlUsername, kind, shortcode] = pathMatch;
-  const article = document.querySelector(
-    'main[role="main"] > div:first-child > div:first-child',
-  );
+  const article =
+    document.querySelector('main[role="main"] > div:first-child > div:first-child') ||
+    document.querySelector('article[role="presentation"]') ||
+    document.querySelector("article");
   if (!article) return null;
 
   let username = urlUsername || "";
   if (!username?.length) {
-    const authorLink = article.querySelector("a._a6hd[href]");
-    if (authorLink) {
-      const m = authorLink
-        .getAttribute("href")
-        .match(/^\/([a-zA-Z0-9._]+)\/?$/);
-      if (m) username = m[1];
+    const links = article.querySelectorAll("a[href]");
+    for (const link of links) {
+      const href = link.getAttribute("href");
+      const m = href?.match(/^\/([a-zA-Z0-9._]+)\/?$/);
+      if (m && link.textContent?.trim() === m[1]) {
+        username = m[1];
+        break;
+      }
     }
   }
 

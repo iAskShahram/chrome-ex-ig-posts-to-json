@@ -13,6 +13,7 @@ const storageListEl = document.getElementById("storage-list");
 const storageItemsEl = document.getElementById("storage-items");
 const storageEmptyEl = document.getElementById("storage-empty");
 const backBtn = document.getElementById("backBtn");
+const saveVideoBtn = document.getElementById("saveVideoBtn");
 
 let currentUsername = null;
 let currentShortcode = null;
@@ -94,33 +95,26 @@ async function init() {
 
   const postInfo = extractPostInfo(tab.url);
   if (postInfo) {
-    currentUsername = postInfo.username;
     currentShortcode = postInfo.shortcode;
     statusTextEl.textContent = `Reading post ${postInfo.shortcode}...`;
 
     chrome.tabs.sendMessage(
       tab.id,
-      { type: "SCRAPE_SINGLE_POST" },
-      async (response) => {
-        if (chrome.runtime.lastError || !response) {
+      { type: "FETCH_POST_INFO", shortcode: postInfo.shortcode },
+      async (post) => {
+        if (chrome.runtime.lastError || !post) {
           statusTextEl.textContent =
-            "Failed to read post. Refresh the page and try again.";
+            "Failed to read post. Log into Instagram and try again.";
           return;
         }
 
-        const post = response.post;
-        if (!post) {
-          statusTextEl.textContent =
-            "Could not extract post data. Refresh and try again.";
-          return;
-        }
-
-        const username = post.username || postInfo.username;
+        const username = post.username;
         if (!username) {
           statusTextEl.textContent =
-            "Could not determine username for this post.";
+            "Could not determine username. Log into Instagram and try again.";
           return;
         }
+        currentUsername = username;
         const storageKey = `posts_${username}`;
         const existing =
           (await chrome.storage.local.get(storageKey))[storageKey] || [];
@@ -131,6 +125,10 @@ async function init() {
         await chrome.storage.local.set({ [storageKey]: merged });
         currentPosts = [current];
         showSuccess(`@${username}`, "1 post");
+
+        if (current.type === "reel" || (current.videoURLs && current.videoURLs.length > 0)) {
+          saveVideoBtn.style.display = "";
+        }
       },
     );
     return;
@@ -284,8 +282,10 @@ function extractPostInfo(url) {
 function extractUsername(url) {
   try {
     const path = new URL(url).pathname;
-    const match = path.match(/^\/([a-zA-Z0-9._]+)\/?$/);
-    return match ? match[1] : null;
+    const match = path.match(/^\/([a-zA-Z0-9._]+)(?:\/.*)?$/);
+    if (!match) return null;
+    const reserved = ["explore", "reels", "direct", "accounts", "stories", "p", "reel", "about", "legal", "api"];
+    return reserved.includes(match[1]) ? null : match[1];
   } catch {
     return null;
   }
@@ -315,6 +315,54 @@ downloadBtn.addEventListener("click", () => {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+});
+
+saveVideoBtn.addEventListener("click", async () => {
+  if (!currentShortcode) return;
+
+  const icon = saveVideoBtn.querySelector(".btn-icon");
+  const label = saveVideoBtn.querySelector(".btn-label");
+  saveVideoBtn.disabled = true;
+  icon.textContent = "";
+  label.textContent = "Downloading...";
+
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    const apiResp = await chrome.tabs.sendMessage(tab.id, {
+      type: "FETCH_POST_INFO",
+      shortcode: currentShortcode,
+    });
+
+    const videoUrl = apiResp?.videoURLs?.[0];
+    if (!videoUrl) throw new Error("No video URL");
+
+    const resp = await fetch(videoUrl);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `${currentUsername || "instagram"}_${currentShortcode}.mp4`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+    icon.textContent = "✓";
+    label.textContent = "Saved!";
+    setTimeout(() => {
+      icon.textContent = "🎬";
+      label.textContent = "Save Video";
+      saveVideoBtn.disabled = false;
+    }, 2000);
+  } catch {
+    showToast("Download failed — log into Instagram and try again");
+    icon.textContent = "🎬";
+    label.textContent = "Save Video";
+    saveVideoBtn.disabled = false;
+  }
 });
 
 redoBtn.addEventListener("click", init);
