@@ -1,3 +1,5 @@
 .cursor/
 *.zip
 .DS_Store
+.playwright-mcp/
+docs/
