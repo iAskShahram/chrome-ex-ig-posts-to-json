@@ -27,7 +27,7 @@ function mergeURLArrays(existing, incoming) {
   }
   for (const url of incoming) {
     const key = url.split("?")[0];
-    if (!seen.has(key)) seen.set(key, url);
+    seen.set(key, url);
   }
   return [...seen.values()];
 }
