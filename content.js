@@ -47,24 +47,37 @@ async function fetchPostInfo(shortcode) {
     const timestamp = item.taken_at
       ? new Date(item.taken_at * 1000).toISOString()
       : "";
-    const isVideo = item.media_type === 2;
-    const videoVersions = item.video_versions || [];
-    const bestVideo = videoVersions.length > 0
-      ? videoVersions.reduce((a, b) => (a.width > b.width ? a : b))
-      : null;
-    const imageVersions = item.image_versions2?.candidates || [];
-    const bestImage = imageVersions.length > 0
-      ? imageVersions.reduce((a, b) => (a.width > b.width ? a : b))
-      : null;
+
+    const imageURLs = [];
+    const videoURLs = [];
+
+    const mediaItems = item.carousel_media || [item];
+    for (const media of mediaItems) {
+      const isVideo = media.media_type === 2;
+      const imgCandidates = media.image_versions2?.candidates || [];
+      const vidVersions = media.video_versions || [];
+
+      const bestImage = imgCandidates.length > 0
+        ? imgCandidates.reduce((a, b) => (a.width > b.width ? a : b))
+        : null;
+      const bestVideo = vidVersions.length > 0
+        ? vidVersions.reduce((a, b) => (a.width > b.width ? a : b))
+        : null;
+
+      if (bestImage?.url) imageURLs.push(bestImage.url);
+      if (isVideo && bestVideo?.url) videoURLs.push(bestVideo.url);
+    }
+
+    const hasVideo = videoURLs.length > 0 || item.media_type === 2;
     return {
       username,
       shortcode,
       caption,
       timestamp,
-      type: isVideo ? "reel" : "post",
-      postUrl: `https://www.instagram.com/reel/${shortcode}/`,
-      imageURLs: bestImage ? [bestImage.url] : [],
-      videoURLs: bestVideo ? [bestVideo.url] : [],
+      type: hasVideo ? "reel" : "post",
+      postUrl: `https://www.instagram.com/p/${shortcode}/`,
+      imageURLs: dedupeURLs(imageURLs),
+      videoURLs: dedupeURLs(videoURLs),
     };
   } catch {
     return null;
@@ -132,9 +145,9 @@ function scrapeSinglePost() {
 
   const [, urlUsername, kind, shortcode] = pathMatch;
   const article =
-    document.querySelector('main[role="main"] > div:first-child > div:first-child') ||
     document.querySelector('article[role="presentation"]') ||
-    document.querySelector("article");
+    document.querySelector("article") ||
+    document.querySelector('main[role="main"] > div:first-child > div:first-child > div:first-child');
   if (!article) return null;
 
   let username = urlUsername || "";

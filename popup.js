@@ -14,6 +14,7 @@ const storageItemsEl = document.getElementById("storage-items");
 const storageEmptyEl = document.getElementById("storage-empty");
 const backBtn = document.getElementById("backBtn");
 const saveVideoBtn = document.getElementById("saveVideoBtn");
+const clearBtn = document.getElementById("clearBtn");
 
 let currentUsername = null;
 let currentShortcode = null;
@@ -85,6 +86,8 @@ async function init() {
   actionsEl.style.display = "none";
   previewEl.style.display = "none";
   storageListEl.style.display = "none";
+  clearBtn.style.display = "none";
+  saveVideoBtn.style.display = "none";
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url?.includes("instagram.com")) {
@@ -98,39 +101,66 @@ async function init() {
     currentShortcode = postInfo.shortcode;
     statusTextEl.textContent = `Reading post ${postInfo.shortcode}...`;
 
-    chrome.tabs.sendMessage(
-      tab.id,
-      { type: "FETCH_POST_INFO", shortcode: postInfo.shortcode },
-      async (post) => {
-        if (chrome.runtime.lastError || !post) {
-          statusTextEl.textContent =
-            "Failed to read post. Log into Instagram and try again.";
-          return;
-        }
+    const apiFetch = new Promise((resolve) => {
+      chrome.tabs.sendMessage(
+        tab.id,
+        { type: "FETCH_POST_INFO", shortcode: postInfo.shortcode },
+        (post) => {
+          if (chrome.runtime.lastError || !post) resolve(null);
+          else resolve(post);
+        },
+      );
+    });
 
-        const username = post.username;
-        if (!username) {
-          statusTextEl.textContent =
-            "Could not determine username. Log into Instagram and try again.";
-          return;
-        }
-        currentUsername = username;
-        const storageKey = `posts_${username}`;
-        const existing =
-          (await chrome.storage.local.get(storageKey))[storageKey] || [];
-        const merged = mergeSinglePost(existing, post);
-        const current =
-          merged.find((p) => p.shortcode === postInfo.shortcode) || post;
+    const domScrape = new Promise((resolve) => {
+      chrome.tabs.sendMessage(
+        tab.id,
+        { type: "SCRAPE_SINGLE_POST" },
+        (resp) => {
+          if (chrome.runtime.lastError || !resp?.post) resolve(null);
+          else resolve(resp.post);
+        },
+      );
+    });
 
-        await chrome.storage.local.set({ [storageKey]: merged });
-        currentPosts = [current];
-        showSuccess(`@${username}`, "1 post");
+    const [apiPost, domPost] = await Promise.all([apiFetch, domScrape]);
 
-        if (current.type === "reel" || (current.videoURLs && current.videoURLs.length > 0)) {
-          saveVideoBtn.style.display = "";
-        }
-      },
-    );
+    if (!apiPost) {
+      statusTextEl.textContent =
+        "Failed to read post. Log into Instagram and try again.";
+      return;
+    }
+
+    let post = apiPost;
+    if (domPost) {
+      post = {
+        ...apiPost,
+        imageURLs: mergeURLArrays(apiPost.imageURLs || [], domPost.imageURLs || []),
+        videoURLs: mergeURLArrays(apiPost.videoURLs || [], domPost.videoURLs || []),
+      };
+    }
+
+    const username = post.username;
+    if (!username) {
+      statusTextEl.textContent =
+        "Could not determine username. Log into Instagram and try again.";
+      return;
+    }
+    currentUsername = username;
+    const storageKey = `posts_${username}`;
+    const existing =
+      (await chrome.storage.local.get(storageKey))[storageKey] || [];
+    const merged = mergeSinglePost(existing, post);
+    const current =
+      merged.find((p) => p.shortcode === postInfo.shortcode) || post;
+
+    await chrome.storage.local.set({ [storageKey]: merged });
+    currentPosts = [current];
+    showSuccess(`@${username}`, "1 post");
+
+    if (current.type === "reel" || (current.videoURLs && current.videoURLs.length > 0)) {
+      saveVideoBtn.style.display = "";
+    }
     return;
   }
 
@@ -238,7 +268,17 @@ async function showStorageList() {
       URL.revokeObjectURL(url);
     });
 
-    actions.append(copyBtn, dlBtn);
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn btn-danger-ghost btn-sm";
+    delBtn.title = "Delete";
+    delBtn.innerHTML = '<span class="btn-icon">🗑</span>';
+    delBtn.addEventListener("click", async () => {
+      await chrome.storage.local.remove(`posts_${entry.username}`);
+      showToast("Deleted");
+      showStorageList();
+    });
+
+    actions.append(copyBtn, dlBtn, delBtn);
     item.append(info, actions);
     storageItemsEl.appendChild(item);
   }
@@ -265,6 +305,7 @@ function showSuccess(label, count) {
   actionsEl.style.display = "flex";
   previewEl.style.display = "block";
   previewEl.textContent = JSON.stringify(currentPosts, null, 2);
+  clearBtn.style.display = "";
 }
 
 function extractPostInfo(url) {
@@ -366,6 +407,27 @@ saveVideoBtn.addEventListener("click", async () => {
 });
 
 redoBtn.addEventListener("click", init);
+
+clearBtn.addEventListener("click", async () => {
+  if (!currentUsername) return;
+  const storageKey = `posts_${currentUsername}`;
+
+  if (currentShortcode) {
+    const existing =
+      (await chrome.storage.local.get(storageKey))[storageKey] || [];
+    const filtered = existing.filter((p) => p.shortcode !== currentShortcode);
+    if (filtered.length > 0) {
+      await chrome.storage.local.set({ [storageKey]: filtered });
+    } else {
+      await chrome.storage.local.remove(storageKey);
+    }
+    showToast("Post cleared");
+  } else {
+    await chrome.storage.local.remove(storageKey);
+    showToast("Profile data cleared");
+  }
+  init();
+});
 
 backBtn.addEventListener("click", () => {
   successEl.style.display = "none";

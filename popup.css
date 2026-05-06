@@ -184,6 +184,16 @@ body::-webkit-scrollbar-thumb {
   color: #a1a1aa;
 }
 
+.btn-danger-ghost {
+  background: transparent;
+  color: #71717a;
+}
+
+.btn-danger-ghost:hover {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+}
+
 .preview {
   flex: 1;
   min-height: 180px;
